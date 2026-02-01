@@ -69,8 +69,8 @@ def train_model(
         All results are saved in the folder model_name as .h5 files containing the trained model
 
     """
-    import tensorflow.keras
-    from tensorflow.keras.optimizers import Adagrad
+    import torch
+    import torch.optim as optim
 
     model_path = os.path.join(model_folder, model_name)
     cfg_file = os.path.join(model_path, "config.yaml")
@@ -144,6 +144,8 @@ def train_model(
 
     print(training_folders[0])
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     for noise_level in cfg["noise_levels"]:
         for ensemble in range(cfg["ensemble_size"]):
             # train 'ensemble_size' (e.g. 5) models for each noise level
@@ -192,26 +194,41 @@ def train_model(
                 optimizer=cfg["optimizer"],
             )
 
-            optimizer = Adagrad(learning_rate=0.05)
-            model.compile(loss=cfg["loss_function"], optimizer=optimizer)
+            model = model.to(device)
+
+            optimizer = optim.Adagrad(model.parameters(), lr=0.05)
+            
+            loss_fn = utils.get_loss_function(cfg["loss_function"])
 
             cfg["nr_of_epochs"] = np.minimum(
                 cfg["nr_of_epochs"], int(10 * np.floor(5e6 / len(X)))
             )
 
-            model.fit(
-                X,
-                Y,
-                batch_size=cfg["batch_size"],
-                epochs=cfg["nr_of_epochs"],
-                verbose=cfg["verbose"],
-            )
+            X_tensor = torch.FloatTensor(X).to(device)
+            Y_tensor = torch.FloatTensor(Y).to(device)
+            
+            dataset = torch.utils.data.TensorDataset(X_tensor, Y_tensor)
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg["batch_size"], shuffle=True)
+
+            model.train()
+            for epoch in range(cfg["nr_of_epochs"]):
+                epoch_loss = 0.0
+                for batch_X, batch_Y in dataloader:
+                    optimizer.zero_grad()
+                    outputs = model(batch_X)
+                    loss = loss_fn(outputs, batch_Y)
+                    loss.backward()
+                    optimizer.step()
+                    epoch_loss += loss.item()
+                
+                if cfg["verbose"]:
+                    print(f"Epoch {epoch+1}/{cfg['nr_of_epochs']}, Loss: {epoch_loss/len(dataloader):.4f}")
 
             # save model
-            file_name = "Model_NoiseLevel_{}_Ensemble_{}.h5".format(
+            file_name = "Model_NoiseLevel_{}_Ensemble_{}.pth".format(
                 int(noise_level), ensemble
             )
-            model.save(os.path.join(model_path, file_name))
+            torch.save(model.state_dict(), os.path.join(model_path, file_name))
             print("Saved model:", file_name)
 
     # Update model fitting status

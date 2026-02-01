@@ -211,42 +211,78 @@ optimizer = torch.optim.Adagrad(model.parameters(), lr=0.05)
 
 
 def define_model(filter_sizes,filter_numbers,dense_expansion,windowsize,loss_function,optimizer):
-
   """"
-  Defines the model using the API of Keras.
-
+  Defines the model using Torch.
   The model consists of 3 convolutional layers ('conv_filter'), 2 downsampling layers
   ('MaxPooling1D') and 1 dense layer ('Dense').
-
   To modify the architecture of the network, only the define_model() function needs to be modified.
-
   Example: model = define_model(filter_sizes,filter_numbers,dense_expansion,windowsize,loss_function,optimizer)
-
   """
-
-  from tensorflow.keras.layers import Dense, Flatten, MaxPooling1D, Conv1D, Input
-  from tensorflow.keras import Model
-  from tensorflow.keras.optimizers import Adagrad
-
-  inputs = Input(shape=(windowsize,1))
-
-  conv_filter = Conv1D
-
-  outX = conv_filter(filter_numbers[0], filter_sizes[0], strides=1, activation='relu')(inputs)
-  outX = conv_filter(filter_numbers[1], filter_sizes[1], activation='relu')(outX)
-  outX = MaxPooling1D(2)(outX)
-  outX = conv_filter(filter_numbers[2], filter_sizes[2], activation='relu')(outX)
-  outX = MaxPooling1D(2)(outX)
-
-  outX = Dense(dense_expansion, activation='relu')(outX) # 'linear' units work here as well!
-  outX = Flatten()(outX)
-  predictions = Dense(1,activation='linear')(outX)
-  model = Model(inputs=[inputs],outputs=predictions)
-  optimizer = Adagrad(learning_rate=0.05)
-  model.compile(loss=loss_function, optimizer=optimizer)
-
+  import torch.nn as nn
+  
+  class CascadeModel(nn.Module):
+      def __init__(self, filter_sizes, filter_numbers, dense_expansion, windowsize):
+          super(CascadeModel, self).__init__()
+          
+          self.conv1 = nn.Conv1d(1, filter_numbers[0], filter_sizes[0], stride=1)
+          self.relu1 = nn.ReLU()
+          
+          self.conv2 = nn.Conv1d(filter_numbers[0], filter_numbers[1], filter_sizes[1])
+          self.relu2 = nn.ReLU()
+          
+          self.pool1 = nn.MaxPool1d(2)
+          
+          self.conv3 = nn.Conv1d(filter_numbers[1], filter_numbers[2], filter_sizes[2])
+          self.relu3 = nn.ReLU()
+          
+          self.pool2 = nn.MaxPool1d(2)
+          
+          self._calculate_flattened_size(windowsize, filter_sizes)
+          
+          self.dense1 = nn.Linear(self.flattened_size, dense_expansion)
+          self.relu4 = nn.ReLU()
+          
+          self.dense2 = nn.Linear(dense_expansion, 1)
+      
+      def _calculate_flattened_size(self, windowsize, filter_sizes):
+          size = windowsize
+          size = size - (filter_sizes[0] - 1)
+          size = size - (filter_sizes[1] - 1)
+          size = size // 2
+          size = size - (filter_sizes[2] - 1)
+          size = size // 2
+          self.flattened_size = size * self.conv3.out_channels
+      
+      def forward(self, x):
+          x = x.permute(0, 2, 1)
+          
+          x = self.conv1(x)
+          x = self.relu1(x)
+          
+          x = self.conv2(x)
+          x = self.relu2(x)
+          
+          x = self.pool1(x)
+          
+          x = self.conv3(x)
+          x = self.relu3(x)
+          
+          x = self.pool2(x)
+          
+          x = x.permute(0, 2, 1)
+          
+          x = self.dense1(x)
+          x = self.relu4(x)
+          
+          x = x.view(x.size(0), -1)
+          
+          x = self.dense2(x)
+          
+          return x
+  
+  model = CascadeModel(filter_sizes, filter_numbers, dense_expansion, windowsize)
+  
   return model
-
 
 
 
