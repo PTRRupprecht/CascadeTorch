@@ -27,6 +27,8 @@ Import python packages
 
 import os, sys
 
+os.chdir(r'C:\Users\peter\Desktop\CascadeTorch\CascadeTorch\Demo scripts')
+
 if "Demo scripts" in os.getcwd():
     sys.path.append(os.path.abspath(".."))  # add parent directory to path for imports
     os.chdir("..")  # change to main directory
