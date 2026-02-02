@@ -54,160 +54,164 @@ from . import config
 
 
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
 
-class SignalToSignal1D(nn.Module):
-    def __init__(self, filter_sizes, filter_numbers, dense_expansion):
-        super().__init__()
+# class SignalToSignal1D(nn.Module):
+#     def __init__(self, filter_sizes, filter_numbers, dense_expansion):
+#         super().__init__()
 
-        # Encoder
-        self.conv1 = nn.Conv1d(1, filter_numbers[0], kernel_size=filter_sizes[0], padding=filter_sizes[0]//2)
-        self.conv2 = nn.Conv1d(filter_numbers[0], filter_numbers[1], kernel_size=filter_sizes[1], padding=filter_sizes[1]//2)
-        self.pool1 = nn.MaxPool1d(2)
+#         # Encoder
+#         self.conv1 = nn.Conv1d(1, filter_numbers[0], kernel_size=filter_sizes[0], padding=filter_sizes[0]//2)
+#         self.conv2 = nn.Conv1d(filter_numbers[0], filter_numbers[1], kernel_size=filter_sizes[1], padding=filter_sizes[1]//2)
+#         self.pool1 = nn.MaxPool1d(2)
         
-        self.conv3 = nn.Conv1d(filter_numbers[1], filter_numbers[2], kernel_size=filter_sizes[2], padding=filter_sizes[2]//2)
-        self.pool2 = nn.MaxPool1d(2)
+#         self.conv3 = nn.Conv1d(filter_numbers[1], filter_numbers[2], kernel_size=filter_sizes[2], padding=filter_sizes[2]//2)
+#         self.pool2 = nn.MaxPool1d(2)
 
-        # Bottleneck replacement for dense_expansion
-        self.bottleneck = nn.Conv1d(filter_numbers[2], dense_expansion, kernel_size=1)
+#         # Bottleneck replacement for dense_expansion
+#         self.bottleneck = nn.Conv1d(filter_numbers[2], dense_expansion, kernel_size=1)
 
-        # Decoder
-        self.up2 = nn.ConvTranspose1d(dense_expansion, filter_numbers[2], kernel_size=2, stride=2)
-        self.dec2 = nn.Conv1d(filter_numbers[2]*2, filter_numbers[1], kernel_size=filter_sizes[2], padding=filter_sizes[2]//2)
+#         # Decoder
+#         self.up2 = nn.ConvTranspose1d(dense_expansion, filter_numbers[2], kernel_size=2, stride=2)
+#         self.dec2 = nn.Conv1d(filter_numbers[2]*2, filter_numbers[1], kernel_size=filter_sizes[2], padding=filter_sizes[2]//2)
 
-        self.up1 = nn.ConvTranspose1d(filter_numbers[1], filter_numbers[1], kernel_size=2, stride=2)
-        self.dec1 = nn.Conv1d(filter_numbers[1]*2, filter_numbers[0], kernel_size=filter_sizes[1], padding=filter_sizes[1]//2)
+#         self.up1 = nn.ConvTranspose1d(filter_numbers[1], filter_numbers[1], kernel_size=2, stride=2)
+#         self.dec1 = nn.Conv1d(filter_numbers[1]*2, filter_numbers[0], kernel_size=filter_sizes[1], padding=filter_sizes[1]//2)
 
-        # Final output
-        self.out_conv = nn.Conv1d(filter_numbers[0], 1, kernel_size=filter_sizes[0], padding=filter_sizes[0]//2)
+#         # Final output
+#         self.out_conv = nn.Conv1d(filter_numbers[0], 1, kernel_size=filter_sizes[0], padding=filter_sizes[0]//2)
 
-    def forward(self, x):
-        # Encoder
-        e1 = F.relu(self.conv1(x))
-        e2 = F.relu(self.conv2(self.pool1(e1)))
-        e3 = F.relu(self.conv3(self.pool2(e2)))
+#     def forward(self, x):
+#         # Encoder
+#         e1 = F.relu(self.conv1(x))
+#         e2 = F.relu(self.conv2(self.pool1(e1)))
+#         e3 = F.relu(self.conv3(self.pool2(e2)))
 
-        # Bottleneck
-        b = F.relu(self.bottleneck(e3))
+#         # Bottleneck
+#         b = F.relu(self.bottleneck(e3))
 
-        # Decoder
-        d2 = self.up2(b)
-        # Adjust size if needed due to pooling
-        if d2.size(-1) != e3.size(-1):
-            d2 = F.pad(d2, (0, e3.size(-1) - d2.size(-1)))
-        d2 = torch.cat([d2, e3], dim=1)
-        d2 = F.relu(self.dec2(d2))
+#         # Decoder
+#         d2 = self.up2(b)
+#         # Adjust size if needed due to pooling
+#         if d2.size(-1) != e3.size(-1):
+#             d2 = F.pad(d2, (0, e3.size(-1) - d2.size(-1)))
+#         d2 = torch.cat([d2, e3], dim=1)
+#         d2 = F.relu(self.dec2(d2))
 
-        d1 = self.up1(d2)
-        if d1.size(-1) != e2.size(-1):
-            d1 = F.pad(d1, (0, e2.size(-1) - d1.size(-1)))
-        d1 = torch.cat([d1, e2], dim=1)
-        d1 = F.relu(self.dec1(d1))
+#         d1 = self.up1(d2)
+#         if d1.size(-1) != e2.size(-1):
+#             d1 = F.pad(d1, (0, e2.size(-1) - d1.size(-1)))
+#         d1 = torch.cat([d1, e2], dim=1)
+#         d1 = F.relu(self.dec1(d1))
 
-        # Output
-        out = self.out_conv(d1)
-        return out
+#         # Output
+#         out = self.out_conv(d1)
+#         return out
 
-"""
-Usage:
+# """
+# Usage:
 
-batch_size = 16
-windowsize = 256
-filter_sizes = [5, 3, 3]
-filter_numbers = [16, 32, 64]
-dense_expansion = 128
+# batch_size = 16
+# windowsize = 256
+# filter_sizes = [5, 3, 3]
+# filter_numbers = [16, 32, 64]
+# dense_expansion = 128
 
-model = SignalToSignal1D(filter_sizes, filter_numbers, dense_expansion)
-x = torch.randn(batch_size, 1, windowsize)  # (batch, channels, time)
-y = model(x)
+# model = SignalToSignal1D(filter_sizes, filter_numbers, dense_expansion)
+# x = torch.randn(batch_size, 1, windowsize)  # (batch, channels, time)
+# y = model(x)
 
-print(y.shape)  # ~ (batch, 1, windowsize)
-"""
-
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-class CNN1DModel(nn.Module):
-    def __init__(self, filter_sizes, filter_numbers, dense_expansion, windowsize):
-        super().__init__()
-
-        # Convolutional layers
-        self.conv1 = nn.Conv1d(
-            in_channels=1,
-            out_channels=filter_numbers[0],
-            kernel_size=filter_sizes[0],
-            stride=1
-        )
-
-        self.conv2 = nn.Conv1d(
-            in_channels=filter_numbers[0],
-            out_channels=filter_numbers[1],
-            kernel_size=filter_sizes[1]
-        )
-
-        self.pool1 = nn.MaxPool1d(2)
-
-        self.conv3 = nn.Conv1d(
-            in_channels=filter_numbers[1],
-            out_channels=filter_numbers[2],
-            kernel_size=filter_sizes[2]
-        )
-
-        self.pool2 = nn.MaxPool1d(2)
-
-        # Dense layer applied *per timestep* (same as Keras Dense on 3D tensor)
-        self.dense_time = nn.Linear(filter_numbers[2], dense_expansion)
-
-        # Final regression head
-        self.output = nn.Linear(dense_expansion * self._compute_flattened_size(windowsize), 1)
-
-    def _compute_flattened_size(self, windowsize):
-        """Compute sequence length after conv + pooling."""
-        L = windowsize
-        L = L - (self.conv1.kernel_size[0] - 1)
-        L = L - (self.conv2.kernel_size[0] - 1)
-        L = L // 2
-        L = L - (self.conv3.kernel_size[0] - 1)
-        L = L // 2
-        return L
-
-    def forward(self, x):
-        # x: (batch, time, channels) → (batch, channels, time)
-        x = x.permute(0, 2, 1)
-
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = self.pool1(x)
-
-        x = F.relu(self.conv3(x))
-        x = self.pool2(x)
-
-        # Apply Dense per timestep
-        x = x.permute(0, 2, 1)          # (batch, time, channels)
-        x = F.relu(self.dense_time(x))  # Dense over channels
-        x = x.flatten(start_dim=1)      # Flatten
-
-        x = self.output(x)
-        return x
+# print(y.shape)  # ~ (batch, 1, windowsize)
+# """
 
 
-"""
-Usage:
-model = CNN1DModel(
-    filter_sizes=filter_sizes,
-    filter_numbers=filter_numbers,
-    dense_expansion=dense_expansion,
-    windowsize=windowsize
-)
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
 
-criterion = nn.MSELoss()  # or whatever loss_function was
-optimizer = torch.optim.Adagrad(model.parameters(), lr=0.05)
-"""
+# class CNN1DModel(nn.Module):
+#     def __init__(self, filter_sizes, filter_numbers, dense_expansion, windowsize):
+#         super().__init__()
 
+#         # Convolutional layers
+#         self.conv1 = nn.Conv1d(
+#             in_channels=1,
+#             out_channels=filter_numbers[0],
+#             kernel_size=filter_sizes[0],
+#             stride=1
+#         )
+
+#         self.conv2 = nn.Conv1d(
+#             in_channels=filter_numbers[0],
+#             out_channels=filter_numbers[1],
+#             kernel_size=filter_sizes[1]
+#         )
+
+#         self.pool1 = nn.MaxPool1d(2)
+
+#         self.conv3 = nn.Conv1d(
+#             in_channels=filter_numbers[1],
+#             out_channels=filter_numbers[2],
+#             kernel_size=filter_sizes[2]
+#         )
+
+#         self.pool2 = nn.MaxPool1d(2)
+
+#         # Dense layer applied *per timestep* (same as Keras Dense on 3D tensor)
+#         self.dense_time = nn.Linear(filter_numbers[2], dense_expansion)
+
+#         # Final regression head
+#         self.output = nn.Linear(dense_expansion * self._compute_flattened_size(windowsize), 1)
+
+#     def _compute_flattened_size(self, windowsize):
+#         """Compute sequence length after conv + pooling."""
+#         L = windowsize
+#         L = L - (self.conv1.kernel_size[0] - 1)
+#         L = L - (self.conv2.kernel_size[0] - 1)
+#         L = L // 2
+#         L = L - (self.conv3.kernel_size[0] - 1)
+#         L = L // 2
+#         return L
+
+#     def forward(self, x):
+#         # x: (batch, time, channels) → (batch, channels, time)
+#         x = x.permute(0, 2, 1)
+
+#         x = F.relu(self.conv1(x))
+#         x = F.relu(self.conv2(x))
+#         x = self.pool1(x)
+
+#         x = F.relu(self.conv3(x))
+#         x = self.pool2(x)
+
+#         # Apply Dense per timestep
+#         x = x.permute(0, 2, 1)          # (batch, time, channels)
+#         x = F.relu(self.dense_time(x))  # Dense over channels
+#         x = x.flatten(start_dim=1)      # Flatten
+
+#         x = self.output(x)
+#         return x
+
+
+# """
+# Usage:
+# model = CNN1DModel(
+#     filter_sizes=filter_sizes,
+#     filter_numbers=filter_numbers,
+#     dense_expansion=dense_expansion,
+#     windowsize=windowsize
+# )
+
+# criterion = nn.MSELoss()  # or whatever loss_function was
+# optimizer = torch.optim.Adagrad(model.parameters(), lr=0.05)
+# """
+
+def get_loss_function(loss_name):
+    """return loss function (currently only MSE loss)"""
+    import torch.nn as nn
+    return nn.MSELoss()
 
 
 def define_model(filter_sizes,filter_numbers,dense_expansion,windowsize,loss_function,optimizer):
@@ -237,12 +241,14 @@ def define_model(filter_sizes,filter_numbers,dense_expansion,windowsize,loss_fun
           
           self.pool2 = nn.MaxPool1d(2)
           
-          self._calculate_flattened_size(windowsize, filter_sizes)
-          
-          self.dense1 = nn.Linear(self.flattened_size, dense_expansion)
+          # Dense layer applied per timestep
+          self.dense1 = nn.Linear(filter_numbers[2], dense_expansion)
           self.relu4 = nn.ReLU()
           
-          self.dense2 = nn.Linear(dense_expansion, 1)
+          # Calculate flattened size for final layer
+          flattened_size = self._calculate_flattened_size(windowsize, filter_sizes) * dense_expansion
+          
+          self.dense2 = nn.Linear(flattened_size, 1)
       
       def _calculate_flattened_size(self, windowsize, filter_sizes):
           size = windowsize
@@ -251,7 +257,7 @@ def define_model(filter_sizes,filter_numbers,dense_expansion,windowsize,loss_fun
           size = size // 2
           size = size - (filter_sizes[2] - 1)
           size = size // 2
-          self.flattened_size = size * self.conv3.out_channels
+          return size
       
       def forward(self, x):
           x = x.permute(0, 2, 1)
@@ -283,7 +289,6 @@ def define_model(filter_sizes,filter_numbers,dense_expansion,windowsize,loss_fun
   model = CascadeModel(filter_sizes, filter_numbers, dense_expansion, windowsize)
   
   return model
-
 
 
 def calculate_noise_levels(neurons_x_time, frame_rate):

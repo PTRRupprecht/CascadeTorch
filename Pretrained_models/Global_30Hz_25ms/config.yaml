@@ -5,42 +5,18 @@ sampling_rate: 30                             # Sampling rate in Hz
 
 # Dataset of ground truth data (in folder 'Ground_truth')   Example: DS14-GCaMP6s-m-V1
 training_datasets:
-- DS03-Cal520-m-S1
-- DS04-OGB1-zf-pDp
-- DS05-Cal520-zf-pDp
-- DS06-GCaMP6f-zf-aDp
-- DS07-GCaMP6f-zf-dD
-- DS08-GCaMP6f-zf-OB
 - DS09-GCaMP6f-m-V1
 - DS10-GCaMP6f-m-V1-neuropil-corrected
 - DS11-GCaMP6f-m-V1-neuropil-corrected
 - DS12-GCaMP6s-m-V1-neuropil-corrected
 - DS13-GCaMP6s-m-V1-neuropil-corrected
 - DS14-GCaMP6s-m-V1
-- DS15-GCaMP6s-m-V1
-- DS16-GCaMP6s-m-V1
-- DS17-GCaMP5k-m-V1
-- DS18-R-CaMP-m-CA3
-- DS19-R-CaMP-m-S1
-- DS20-jRCaMP1a-m-V1
 placeholder_1: 0       # protect formatting
 
 
 # Noise levels for training (integers, normally 1-9)
 noise_levels:
 - 2
-- 3
-- 4
-- 5
-- 6
-- 7
-- 8
-- 9
-- 10
-- 11
-- 12
-- 13
-- 14
 placeholder_2: 0       # protect formatting
 
 
@@ -80,7 +56,7 @@ batch_size: 1024                 # Batch size
 
 ## Information about status of fitting
 
-training_finished: No            # Yes / No / Running
+training_finished: Running       # Yes / No / Running
 verbose: 1                       # level of status messages (0: minimal, 1: standard, 2: most, 3: all)
 
 
