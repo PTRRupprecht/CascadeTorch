@@ -39,6 +39,7 @@ yaml = yaml.YAML(typ='rt')
 
 from cascade2p import cascade # local folder
 from cascade2p.utils import plot_dFF_traces, plot_noise_level_distribution, plot_noise_matched_ground_truth
+import torch
 
 """
 
@@ -77,8 +78,8 @@ Load dF/F traces, define frame rate and plot example traces
 """
 
 
-example_file = 'Example_datasets/Multiplane-OGB1-zf-pDp-Rupprecht-7.5Hz/Calcium_traces_04.mat'
-frame_rate = 7.5 # in Hz
+example_file = 'Example_datasets/Allen-Brain-Observatory-Visual-Coding-30Hz/Experiment_552195520_excerpt.mat'
+frame_rate = 30 # in Hz
 
 traces = load_neurons_x_time( example_file )
 print('Number of neurons in dataset:', traces.shape[0])
@@ -99,14 +100,14 @@ Load list of available models
 
 """
 
-cascade.download_model( 'update_models',verbose = 1)
+# cascade.download_model( 'update_models',verbose = 1)
 
-yaml_file = open('Pretrained_models/available_models.yaml')
-X = yaml.load(yaml_file)
-list_of_models = list(X.keys())
+# yaml_file = open('Pretrained_models/available_models.yaml')
+# X = yaml.load(yaml_file)
+# list_of_models = list(X.keys())
 
-for model in list_of_models:
-  print(model)
+# for model in list_of_models:
+#   print(model)
 
 
 
@@ -117,10 +118,18 @@ Select pretrained model and apply to dF/F data
 
 """
 
-model_name = 'OGB_zf_pDp_7.5Hz_smoothing200ms'
-cascade.download_model( model_name,verbose = 1)
+model_name = 'Global_30Hz_25ms'
+# cascade.download_model( model_name,verbose = 1)
 
-spike_prob = cascade.predict( model_name, traces )
+# Set device for PyTorch
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+spike_prob = cascade.predict( model_name, traces, device=device )
+
+
+
+
+neuron_indices = np.random.randint(traces.shape[0], size=10)
+plot_dFF_traces(traces,neuron_indices,frame_rate,spike_prob)
 
 
 """
@@ -137,24 +146,3 @@ save_path = os.path.join(folder, 'full_prediction_'+os.path.basename(example_fil
 #np.save(save_path, spike_prob)
 sio.savemat(save_path+'.mat', {'spike_prob':spike_prob})
 
-"""
-
-Plot example predictions
-
-"""
-
-neuron_indices = np.random.randint(traces.shape[0], size=10)
-plot_dFF_traces(traces,neuron_indices,frame_rate,spike_prob)
-
-
-
-"""
-
-Plot noise-matched examples from the ground truth
-
-"""
-
-median_noise = np.round(np.median(noise_levels))
-nb_traces = 8
-duration = 50 # seconds
-plot_noise_matched_ground_truth( model_name, median_noise, frame_rate, nb_traces, duration )

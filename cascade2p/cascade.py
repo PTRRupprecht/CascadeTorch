@@ -240,10 +240,8 @@ def train_model(
     print("Runtime: {:.0f} min".format((time.time() - start) / 60))
 
 
-
-
 def predict(
-    model_name, traces, model_folder="Pretrained_models", threshold=0, padding=np.nan, trace_noise_levels=None, verbosity=1
+    model_name, traces, model_folder="Pretrained_models", threshold=0, padding=np.nan, trace_noise_levels=None, verbosity=1, device=None
 ):
 
     """Use a specific trained neural network ('model_name') to predict spiking activity for calcium traces ('traces')
@@ -253,7 +251,7 @@ def predict(
       to match the properties of the calcium recordings in 'traces'.
     An ensemble of 5 models is loaded for each noise level.
     These models are used to predict spiking activity of neurons from 'traces' with the same noise levels.
-    The predictions are made in the line with 'model.predict()'.
+    The predictions are made with PyTorch inference.
     The predictions are returned as a matrix 'Y_predict'.
 
 
@@ -261,7 +259,7 @@ def predict(
     ------------
     model_name : str
         Name of the model, e.g. 'Universal_30Hz_smoothing100ms'
-        This name has to correspond to the folder in which the config.yaml and .h5 files are stored which define
+        This name has to correspond to the folder in which the config.yaml and .pth files are stored which define
         the trained model
 
     traces : 2d numpy array (neurons x nr_timepoints)
@@ -286,9 +284,12 @@ def predict(
     trace_noise_levels: float (neurons x 1)
         Noise levels of the traces. If not provided, the noise levels are calculated from the traces.
 
-    vebosity : 0 or 1
+    verbosity : 0 or 1
         If set to 0, the output of predict() during inference in the console is suppressed
         Default value: 1
+
+    device : torch.device or None
+        Device to run inference on (cuda or cpu). If None, automatically selects cuda if available.
 
     Returns
     --------
@@ -297,8 +298,11 @@ def predict(
         This array can contain NaNs if the value 'padding' was np.nan as input argument
 
     """
-    import tensorflow.keras
-    from tensorflow.keras.models import load_model
+    import torch
+
+    # Set device
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # reshape matrix of traces if only a single neuron's activity is provided as input to the inference
     if len(traces.shape) == 1:
@@ -420,10 +424,21 @@ def predict(
                 print("\tNo neurons for this noise level")
             continue  # jump to next noise level
 
-        # load keras models for the given noise level
+        # load PyTorch models for the given noise level
         models = list()
-        for model_path in model_dict[model_noise]:
-            models.append(load_model(model_path))
+        for model_path_file in model_dict[model_noise]:
+            model = utils.define_model(
+                filter_sizes=cfg["filter_sizes"],
+                filter_numbers=cfg["filter_numbers"],
+                dense_expansion=cfg["dense_expansion"],
+                windowsize=cfg["windowsize"],
+                loss_function=cfg["loss_function"],
+                optimizer=cfg["optimizer"],
+            )
+            model.load_state_dict(torch.load(model_path_file, map_location=device))
+            model.to(device)
+            model.eval()
+            models.append(model)
 
         # select neurons and merge neurons and timepoints into one dimension
         XX_sel = XX[neuron_idx, :, :]
@@ -439,13 +454,30 @@ def predict(
             if verbose:
                 print("\t... ensemble", j)
 
-            prediction_flat = model.predict(XX_sel, batch_size, verbose=verbose)
+            # Convert to PyTorch tensor
+            XX_tensor = torch.FloatTensor(XX_sel).to(device)
+            
+            # Create DataLoader for batched inference
+            dataset = torch.utils.data.TensorDataset(XX_tensor)
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+            
+            # Perform inference
+            predictions = []
+            with torch.no_grad():
+                for batch in dataloader:
+                    batch_X = batch[0]
+                    outputs = model(batch_X)
+                    predictions.append(outputs.cpu().numpy())
+            
+            prediction_flat = np.concatenate(predictions, axis=0)
             prediction = np.reshape(prediction_flat, (len(neuron_idx), XX.shape[1]))
 
             Y_predict[neuron_idx, :] += prediction / len(models)  # average predictions
 
-        # remove models from memory
-        tensorflow.keras.backend.clear_session()
+        # Clean up models from memory
+        del models
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     if threshold is False:  # only if 'False' is passed as argument
         if verbose:
@@ -505,7 +537,6 @@ def predict(
 
     return Y_predict
 
-
 def verify_config_dict(config_dictionary):
 
     """Perform some test to catch the most likely errors when creating config files"""
@@ -555,48 +586,37 @@ def create_model_folder(config_dictionary, model_folder="Pretrained_models"):
             "There is already a folder called {}. ".format(cfg["model_name"])
             + "Please rename your model."
         )
-
-
 def get_model_paths(model_path):
-
     """Find all models in the model folder and return as dictionary
     ( Helper function called by predict() )
-
     Returns
     -------
     model_dict : dict
         Dictionary with noise_level (int) as keys and entries are lists of model paths
-
     """
     import glob, re
-
-    all_models = glob.glob(os.path.join(model_path, "*.h5"))
+    all_models = glob.glob(os.path.join(model_path, "*.pth"))
     all_models = sorted(all_models)  # sort
-
     # Exception in case no model was found to catch this mistake where it happened
     if len(all_models) == 0:
-        m = 'No models (*.h5 files) were found in the specified folder "{}".'.format(
+        m = 'No models (*.pth files) were found in the specified folder "{}".'.format(
             os.path.abspath(model_path)
         )
         raise Exception(m)
-
     # dictionary with key for noise level, entries are lists of models
     model_dict = dict()
-
     for model_path in all_models:
         try:
             noise_level = int(re.findall("_NoiseLevel_(\d+)", model_path)[0])
         except:
             print("Error while processing the file with name: ", model_path)
             raise
-
         # add model path to the model dictionary
         if noise_level not in model_dict:
             model_dict[noise_level] = list()
         model_dict[noise_level].append(model_path)
-
+        
     return model_dict
-
 
 def download_model(
     model_name,
