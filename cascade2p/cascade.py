@@ -621,7 +621,7 @@ def get_model_paths(model_path):
 def download_model(
     model_name,
     model_folder="Pretrained_models",
-    info_file_link="https://raw.githubusercontent.com/HelmchenLabSoftware/Cascade/master/Pretrained_models/available_models.yaml",
+    info_file_link="https://raw.githubusercontent.com/PTRRupprecht/CascadeTorch/refs/heads/master/Pretrained_models/available_models_CascadeTorch.yaml",
     verbose=1,
 ):
     """Download and unzip pretrained model from the online repository
@@ -632,7 +632,7 @@ def download_model(
         Name of the model, e.g. 'Universal_30Hz_smoothing100ms'
         This name has to correspond to a pretrained model that is available for download
         To see available models, run this function with model_name='update_models' and
-        check the downloaded file 'available_models.yaml'
+        check the downloaded file 'available_models_CascadeTorch.yaml'
 
     model_folder: str
         Absolute or relative path, which defines the location of the specified model_name folder
@@ -651,7 +651,7 @@ def download_model(
     import zipfile
 
     # Download the current yaml file with information about available models first
-    new_file = os.path.join(model_folder, "available_models.yaml")
+    new_file = os.path.join(model_folder, "available_models_CascadeTorch.yaml")
     with urlopen(info_file_link) as response:
         text = response.read()
 
@@ -666,7 +666,7 @@ def download_model(
     if model_name not in download_config.keys():
         if model_name == "update_models":
             print(
-                "You can now check the updated available_models.yaml file for valid model names."
+                "You can now check the updated available_models_CascadeTorch.yaml file for valid model names."
             )
             print("File location:", os.path.abspath(new_file))
             return
