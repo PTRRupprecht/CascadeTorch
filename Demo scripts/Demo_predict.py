@@ -100,14 +100,14 @@ Load list of available models
 
 """
 
-# cascade.download_model( 'update_models',verbose = 1)
+cascade.download_model( 'update_models',verbose = 1)
 
-# yaml_file = open('Pretrained_models/available_models.yaml')
-# X = yaml.load(yaml_file)
-# list_of_models = list(X.keys())
+yaml_file = open('Pretrained_models/available_models_CascadeTorch.yaml')
+X = yaml.load(yaml_file)
+list_of_models = list(X.keys())
 
-# for model in list_of_models:
-#   print(model)
+for model in list_of_models:
+  print(model)
 
 
 
@@ -118,8 +118,8 @@ Select pretrained model and apply to dF/F data
 
 """
 
-model_name = 'Global_30Hz_25ms'
-# cascade.download_model( model_name,verbose = 1)
+model_name = 'Global_EXC_30Hz_smoothing25ms'
+cascade.download_model( model_name,verbose = 1)
 
 # Set device for PyTorch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -140,9 +140,9 @@ Save predictions to disk
 
 
 folder = os.path.dirname(example_file)
-save_path = os.path.join(folder, 'full_prediction_'+os.path.basename(example_file))
+save_path = os.path.join(folder, 'full_prediction_'+os.path.basename(example_file[0:-4]))
 
 # save as numpy file
 #np.save(save_path, spike_prob)
-sio.savemat(save_path+'.mat', {'spike_prob':spike_prob})
+sio.savemat(save_path+'Torch.mat', {'spike_prob':spike_prob})
 
