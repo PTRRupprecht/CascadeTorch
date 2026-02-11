@@ -58,9 +58,9 @@ Check the parent [CASCADE repository](https://github.com/HelmchenLabSoftware/Cas
 ### References
 
 
-> Please cite the [paper](https://www.nature.com/articles/s41593-021-00895-5) as primary reference for Cascade:
+> Please cite as primary reference for Cascade:
 >
-> Rupprecht P, Carta S, Hoffmann A, Echizen M, Blot A, Kwan AC, Dan Y, Hofer SB, Kitamura K, Helmchen F\*, Friedrich RW\*, *A database and deep learning toolbox for noise-optimized, generalized spike inference from calcium imaging*, Nature Neuroscience (2021).
+> Rupprecht P, Carta S, Hoffmann A, Echizen M, Blot A, Kwan AC, Dan Y, Hofer SB, Kitamura K, Helmchen F\*, Friedrich RW\*, *[A database and deep learning toolbox for noise-optimized, generalized spike inference from calcium imaging](https://www.nature.com/articles/s41593-021-00895-5)*, Nature Neuroscience (2021).
 >
 > (\* = co-senior authors)
 >
