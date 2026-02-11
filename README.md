@@ -3,7 +3,7 @@
 [![Size](https://img.shields.io/github/repo-size/PTRRupprecht/CascadeTorch?style=plastic)](https://img.shields.io/github/repo-size/PTRRupprecht/CascadeTorch?style=plastic)
 [![Language](https://img.shields.io/github/languages/top/PTRRupprecht/CascadeTorch?style=plastic)](https://github.com/PTRRupprecht/CascadeTorch)
 
-## CascadeTorch: Calibrated spike inference from calcium imaging data using PycTorch
+## CascadeTorch: Calibrated spike inference from calcium imaging data using PyTorch
 
 <!---![Concept of supervised inference of spiking activity from calcium imaging data using deep networks](https://github.com/PTRRupprecht/CascadeTorch/tree/master/etc/Figure%20concept.png)--->
 <p align="center"><img src="https://github.com/PTRRupprecht/CascadeTorch/tree/master/etc/CA1_deconvolution_CASCADE.gif "  width="85%"></p>
