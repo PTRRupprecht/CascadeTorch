@@ -34,7 +34,7 @@ Helper functions for CASCADE:
 """"
 Import dependencies.
 os, glob, numpy and scipy are standard libraries contained in Anaconda.
-Keras is a high-level user interface for the deep learning framework TensorFlow.
+Torch is the deep learning framework used to define, train, and use models.
 
 """
 

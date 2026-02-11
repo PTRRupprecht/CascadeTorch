@@ -629,7 +629,7 @@ def download_model(
     Parameters
     ----------
     model_name : str
-        Name of the model, e.g. 'Universal_30Hz_smoothing100ms'
+        Name of the model, e.g. 'Global_EXC_30Hz_smoothing25ms'
         This name has to correspond to a pretrained model that is available for download
         To see available models, run this function with model_name='update_models' and
         check the downloaded file 'available_models_CascadeTorch.yaml'

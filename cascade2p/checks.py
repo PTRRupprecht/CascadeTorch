@@ -5,7 +5,7 @@ General checks to simplify jupyter notebooks and GUI
 """
 
 def check_packages():
-    """ Wrapper for check_yaml and check_keras_version """
+    """ Wrapper for check_yaml and check_pytorch_version """
     check_yaml()
     check_pytorch_version()
 
