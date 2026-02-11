@@ -6,7 +6,7 @@
 ## CascadeTorch: Calibrated spike inference from calcium imaging data using PyTorch
 
 <!---![Concept of supervised inference of spiking activity from calcium imaging data using deep networks](https://github.com/PTRRupprecht/CascadeTorch/tree/master/etc/Figure%20concept.png)--->
-<p align="center"><img src="https://github.com/PTRRupprecht/CascadeTorch/tree/master/etc/CA1_deconvolution_CASCADE.gif "  width="85%"></p>
+<p align="center"><img src="https://github.com/PTRRupprecht/CascadeTorch/blob/master/etc/CA1_deconvolution_CASCADE.gif "  width="85%"></p>
 
 *Cascade* translates calcium imaging ΔF/F traces into spiking probabilities or discrete spikes.
 
