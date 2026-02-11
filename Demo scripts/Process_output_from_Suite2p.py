@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import percentile_filter
 import numpy as np
 import scipy.io as sio
+import torch
 import ruamel.yaml as yaml
 yaml = yaml.YAML(typ='rt')
 
@@ -114,7 +115,10 @@ for i,folder in enumerate(all_folders):
 
     model_name = 'GC8_EXC_30Hz_smoothing50ms_high_noise'
     cascade.download_model( model_name,verbose = 1)
-    spike_prob = cascade.predict( model_name, dFF, verbosity=1 )
+    
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    spike_prob = cascade.predict( model_name, dFF, device=device,verbosity=1 )
     
     
     # save dFF and deconvolved traces as a MATLAB *.mat-file
