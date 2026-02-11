@@ -61,7 +61,6 @@ Check the parent [CASCADE repository](https://github.com/HelmchenLabSoftware/Cas
 > Please cite as primary reference for Cascade:
 >
 > Rupprecht P, Carta S, Hoffmann A, Echizen M, Blot A, Kwan AC, Dan Y, Hofer SB, Kitamura K, Helmchen F\*, Friedrich RW\*, *[A database and deep learning toolbox for noise-optimized, generalized spike inference from calcium imaging](https://www.nature.com/articles/s41593-021-00895-5)*, Nature Neuroscience (2021).
->
 > (\* = co-senior authors)
 >
 > And the following papers specific for models trained with GCaMP8 and spinal cord data, respectively:
