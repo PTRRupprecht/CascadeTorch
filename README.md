@@ -41,7 +41,7 @@ If you want to modify the code, integrate the algorithm into your existing pipel
 
 Although Cascade is based on deep networks, GPU support is not required. Model training runs smoothly on CPUs (although GPUs can speed up the process). Therefore, installation is much simpler than for typical deep learning toolboxes that depend on GPU-based processing.
 
-Inference has been tested successfully with Torch versions between 2.4 and 2.9 on Colab, Ubuntu, and Windows. See setup.py for a full list of requirements, or navigate to the CascadeTorch folder in your environment and run: `pip install .`
+Inference has been tested successfully with Torch versions between 2.4 and 2.9 on Colab, Ubuntu, and Windows. See `setup.py` for a full list of requirements, or navigate to the CascadeTorch folder in your environment and run: `pip install .`
 
 Feedback about problems with configurations and operating systems (also positive feedback about working environments) is welcome. Please submit issues, e-mails, or pull requests.
 
