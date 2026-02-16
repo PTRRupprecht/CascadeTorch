@@ -49,7 +49,7 @@ If you want to try out the algorithm, just open **[this online Colaboratory Note
 
 If you want to modify the code, if you want to integrate the algorithm into your existing pipeline (e.g., with CaImAn or Suite2P), or if you want to train your own networks, an installation on your local machine is necessary. Important: Although *Cascade* is based on deep networks, **GPU-support is not necessary**. Training of models for Cascade runs smoothly without (albeit GPUs speed up the process). Therefore, the installation is much easier than for typical deep learning-based toolboxes that require GPU-based processing.
 
-Details on the package versions will be noted later. For the moment, Torch version >2.5 works well in the Colab Cloud and on Windows. Compatibility with newer versions of Torch, Python, and other operating systems (Ubuntu, macOS) will be evaluated during the next months. Feedback (also positive feedback about working environments) is very welcome and can be submitted in form of issues or pull requests.
+Inference in our hands worked well with Torch versions between 2.4 and 2.9, in the Colab Cloud, on Ubuntu or  Windows. Feedback about problems with configurations and operating systems (also positive feedback about working environments) is very welcome and can be submitted in form of issues, e-mails, or pull requests.
 
 ### Updates, FAQs, further info:
 
