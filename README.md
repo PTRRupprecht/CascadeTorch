@@ -21,23 +21,13 @@
 - Tools to quantify the out-of-dataset generalization for a given model and noise level
 - A tool to transform inferred spike rates into discrete spikes
 
-Get started quickly with the following two *Colaboratory Notebooks*:
+Get started quickly with the following *Colaboratory Notebook*:
 
-## [Spike inference from calcium data](https://colab.research.google.com/github/PTRRupprecht/CascadeTorch/blob/master/Demo%20scripts/Calibrated_spike_inference_with_Cascade.ipynb)
-
-Upload your calcium data, use Cascade to process the data, download the inferred spike rates.
-
-Spike inference with Cascade improves the temporal resolution, denoises the recording and provides an absolute spike rate estimate.
-
-No parameter tuning, no installation required.
-
-You will get started within few minutes.
-
-[Spike inference from calcium data](https://colab.research.google.com/github/PTRRupprecht/CascadeTorch/blob/master/Demo%20scripts/Calibrated_spike_inference_with_Cascade.ipynb)
-
-<p align="center">
-<a href="https://colab.research.google.com/github/PTRRupprecht/CascadeTorch/blob/master/Demo%20scripts/Calibrated_spike_inference_with_Cascade.ipynb" rel="Spike inference from calcium data, showing activations of intermediate network layers"><img src="https://github.com/HelmchenLabSoftware/Calibrated-inference-of-spiking/blob/master/etc/Network_activations_output.gif "  width="85%"></a>
-</p>
+- **[Spike inference from calcium data (Colaboratory Notebook)](https://colab.research.google.com/github/PTRRupprecht/CascadeTorch/blob/master/Demo%20scripts/Calibrated_spike_inference_with_Cascade.ipynb)**
+- Upload your calcium data, use Cascade to process the data, download the inferred spike rates.
+- Spike inference with Cascade improves the temporal resolution, denoises the recording and provides an absolute spike rate estimate.
+- No parameter tuning, no installation required.
+- You will get started within few minutes.
 
 ## Getting started
 
