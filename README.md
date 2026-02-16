@@ -6,7 +6,7 @@
 ## CascadeTorch: Calibrated spike inference from calcium imaging data using PyTorch
 
 <!---![Concept of supervised inference of spiking activity from calcium imaging data using deep networks](https://github.com/PTRRupprecht/CascadeTorch/tree/master/etc/Figure%20concept.png)--->
-<p align="center"><img src="https://github.com/PTRRupprecht/CascadeTorch/blob/master/etc/CA1_deconvolution_CASCADE.gif "  width="85%"></p>
+<p align="center"><img src="https://github.com/PTRRupprecht/CascadeTorch/blob/master/etc/CA1_deconvolution_CASCADE.gif "  width="75%"></p>
 
 *Cascade* translates calcium imaging ΔF/F traces into spiking probabilities or discrete spikes.
 
@@ -37,9 +37,13 @@ If you want to try out the algorithm, just open **[this online Colaboratory Note
 
 #### With a local installation (Ubuntu/Windows)
 
-If you want to modify the code, if you want to integrate the algorithm into your existing pipeline (e.g., with CaImAn or Suite2P), or if you want to train your own networks, an installation on your local machine is necessary. Important: Although *Cascade* is based on deep networks, **GPU-support is not necessary**. Training of models for Cascade runs smoothly without (albeit GPUs speed up the process). Therefore, the installation is much easier than for typical deep learning-based toolboxes that require GPU-based processing.
+If you want to modify the code, integrate the algorithm into your existing pipeline (e.g., with CaImAn or Suite2P), or train your own networks, you will need a local installation.
 
-Inference in our hands worked well with Torch versions between 2.4 and 2.9, in the Colab Cloud, on Ubuntu or  Windows. Feedback about problems with configurations and operating systems (also positive feedback about working environments) is very welcome and can be submitted in form of issues, e-mails, or pull requests.
+Although Cascade is based on deep networks, GPU support is not required. Model training runs smoothly on CPUs (although GPUs can speed up the process). Therefore, installation is much simpler than for typical deep learning toolboxes that depend on GPU-based processing.
+
+Inference has been tested successfully with Torch versions between 2.4 and 2.9 on Colab, Ubuntu, and Windows. See setup.py for a full list of requirements, or navigate to the CascadeTorch folder in your environment and run: `pip install .`
+
+Feedback about problems with configurations and operating systems (also positive feedback about working environments) is welcome. Please submit issues, e-mails, or pull requests.
 
 ### Updates, FAQs, further info:
 
