@@ -339,6 +339,57 @@ def preprocess_traces(neurons_x_time, before_frac, window_size):
     return X
 
 
+def get_prediction_window_geometry(before_frac, window_size):
+
+    """
+    Return the valid prediction span implied by the receptive window.
+
+    The values match the placement used by ``preprocess_traces()``.
+    """
+
+    left_context = int(before_frac * window_size - 1)
+    right_context = window_size - left_context - 1
+    valid_start = left_context
+    valid_stop_offset = right_context
+    return left_context, right_context, valid_start, valid_stop_offset
+
+
+def estimate_inference_cell_chunk_size(
+    num_cells, window_size, time_chunk_frames, device, max_chunk_size=256
+):
+
+    """
+    Return a conservative fixed cell chunk size for streaming inference.
+    """
+
+    if num_cells <= 0:
+        return 0
+
+    del window_size, time_chunk_frames, device
+    if max_chunk_size is None:
+        return num_cells
+    return min(num_cells, max_chunk_size)
+
+
+def build_streaming_window_tensor(
+    traces_chunk, window_size, window_start_offset, valid_frames, device
+):
+
+    """
+    Materialize only the requested sliding windows on the target device.
+    """
+
+    import torch
+
+    traces_chunk = np.ascontiguousarray(traces_chunk, dtype=np.float32)
+    traces_tensor = torch.as_tensor(traces_chunk, dtype=torch.float32, device=device)
+    window_views = traces_tensor.unfold(dimension=1, size=window_size, step=1)
+    window_views = window_views[
+        :, window_start_offset : window_start_offset + valid_frames, :
+    ]
+    return window_views.contiguous().view(-1, window_size, 1)
+
+
 
 
 def calibrated_ground_truth_artificial_noise(ground_truth_folder,noise_level,sampling_rate,replicas,omission_list=[], verbose=3):

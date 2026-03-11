@@ -30,6 +30,7 @@ Additional functions in this file are used to navigate different models ('get_mo
 
 """
 
+import math
 import os
 import time
 import numpy as np
@@ -303,10 +304,14 @@ def predict(
     # Set device
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device(device)
 
     # reshape matrix of traces if only a single neuron's activity is provided as input to the inference
     if len(traces.shape) == 1:
         traces = np.expand_dims(traces,0)
+
+    traces = np.ascontiguousarray(traces, dtype=np.float32)
 
   
     model_path = os.path.join(model_folder, model_name)
@@ -382,6 +387,7 @@ def predict(
     if trace_noise_levels is None:
         # calculate noise levels for each trace
         trace_noise_levels = utils.calculate_noise_levels(traces, sampling_rate)
+    trace_noise_levels = np.asarray(trace_noise_levels, dtype=np.float32).reshape(-1)
 
     if verbose:
         print(
@@ -397,11 +403,16 @@ def predict(
     if verbose > 2:
         print("Loaded models:", str(model_dict))
 
-    # XX has shape: (neurons, timepoints, windowsize)
-    XX = utils.preprocess_traces(
-        traces, before_frac=before_frac, window_size=window_size
+    (
+        left_context,
+        right_context,
+        valid_start,
+        valid_stop_offset,
+    ) = utils.get_prediction_window_geometry(
+        before_frac=before_frac, window_size=window_size
     )
-    Y_predict = np.zeros((XX.shape[0], XX.shape[1]))
+    valid_stop = traces.shape[1] - valid_stop_offset
+    Y_predict = np.zeros(traces.shape, dtype=np.float32)
 
     # Compute difference of noise levels between each neuron and each model; find the best fit
     differences = np.array(trace_noise_levels)[:,None] - np.array(noise_levels_model)[None,:]
@@ -409,74 +420,127 @@ def predict(
     if np.mean(relative_differences) > 2:
         print("WARNING: The available models cannot match the experimentally obtained noise levels (difference: ", str(np.mean(relative_differences)),"). Please check that the computation of dF/F is performed correctly. Otherwise, please reach out and ask for pretrained models with higher noise level models (see: https://github.com/HelmchenLabSoftware/Cascade/issues/61).")
     best_model_for_each_neuron = np.argmin(np.abs(differences),axis=1)
-    
-    # Use for each noise level the matching model
-    for i, model_noise in enumerate(noise_levels_model):
 
-        if verbose:
-            print("\nPredictions for noise level {}:".format(model_noise))
+    time_chunk_frames = 8192
+    cell_chunk_size = utils.estimate_inference_cell_chunk_size(
+        num_cells=traces.shape[0],
+        window_size=window_size,
+        time_chunk_frames=time_chunk_frames,
+        device=device,
+    )
+    halo = window_size - 1
 
-        # select neurons which have this noise level:
-        neuron_idx = np.where(best_model_for_each_neuron == i)[0]
-        
-        if len(neuron_idx) == 0:  # no neurons were selected
-            if verbose:
-                print("\tNo neurons for this noise level")
-            continue  # jump to next noise level
-
-        # load PyTorch models for the given noise level
-        models = list()
-        for model_path_file in model_dict[model_noise]:
-            model = utils.define_model(
-                filter_sizes=cfg["filter_sizes"],
-                filter_numbers=cfg["filter_numbers"],
-                dense_expansion=cfg["dense_expansion"],
-                windowsize=cfg["windowsize"],
-                loss_function=cfg["loss_function"],
-                optimizer=cfg["optimizer"],
+    if verbose:
+        print(
+            "Using streaming inference with cell_chunk_size={} and time_chunk_frames={}.".format(
+                cell_chunk_size, time_chunk_frames
             )
-            model.load_state_dict(torch.load(model_path_file, map_location=device))
-            model.to(device)
-            model.eval()
-            models.append(model)
-
-        # select neurons and merge neurons and timepoints into one dimension
-        XX_sel = XX[neuron_idx, :, :]
-
-        XX_sel = np.reshape(
-            XX_sel, (XX_sel.shape[0] * XX_sel.shape[1], XX_sel.shape[2])
         )
-        XX_sel = np.expand_dims(
-            XX_sel, axis=2
-        )  # add empty third dimension to match training shape
 
-        for j, model in enumerate(models):
+    loaded_models = dict()
+    try:
+        # Use for each noise level the matching model
+        for i, model_noise in enumerate(noise_levels_model):
+
             if verbose:
-                print("\t... ensemble", j)
+                print("\nPredictions for noise level {}:".format(model_noise))
 
-            # Convert to PyTorch tensor
-            XX_tensor = torch.FloatTensor(XX_sel).to(device)
+            # select neurons which have this noise level:
+            neuron_idx = np.where(best_model_for_each_neuron == i)[0]
             
-            # Create DataLoader for batched inference
-            dataset = torch.utils.data.TensorDataset(XX_tensor)
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
-            
-            # Perform inference
-            predictions = []
-            with torch.no_grad():
-                for batch in dataloader:
-                    batch_X = batch[0]
-                    outputs = model(batch_X)
-                    predictions.append(outputs.cpu().numpy())
-            
-            prediction_flat = np.concatenate(predictions, axis=0)
-            prediction = np.reshape(prediction_flat, (len(neuron_idx), XX.shape[1]))
+            if len(neuron_idx) == 0:  # no neurons were selected
+                if verbose:
+                    print("\tNo neurons for this noise level")
+                continue  # jump to next noise level
 
-            Y_predict[neuron_idx, :] += prediction / len(models)  # average predictions
+            if model_noise not in loaded_models:
+                models = list()
+                for model_path_file in model_dict[model_noise]:
+                    model = utils.define_model(
+                        filter_sizes=cfg["filter_sizes"],
+                        filter_numbers=cfg["filter_numbers"],
+                        dense_expansion=cfg["dense_expansion"],
+                        windowsize=cfg["windowsize"],
+                        loss_function=cfg["loss_function"],
+                        optimizer=cfg["optimizer"],
+                    )
+                    model.load_state_dict(torch.load(model_path_file, map_location=device))
+                    model.to(device)
+                    model.eval()
+                    models.append(model)
+                loaded_models[model_noise] = models
 
-        # Clean up models from memory
-        del models
-        if torch.cuda.is_available():
+            models = loaded_models[model_noise]
+
+            if valid_stop <= valid_start:
+                continue
+
+            num_cell_chunks = max(1, math.ceil(len(neuron_idx) / cell_chunk_size))
+            num_time_chunks = max(
+                1, math.ceil((valid_stop - valid_start) / time_chunk_frames)
+            )
+
+            for neuron_chunk_start in range(0, len(neuron_idx), cell_chunk_size):
+                neuron_chunk_stop = min(
+                    neuron_chunk_start + cell_chunk_size, len(neuron_idx)
+                )
+                neuron_chunk_idx = neuron_idx[neuron_chunk_start:neuron_chunk_stop]
+                cell_chunk_index = neuron_chunk_start // cell_chunk_size + 1
+
+                if verbose:
+                    print(
+                        "\tcell chunk {}/{} ({} neurons), {} temporal chunks x {} ensembles".format(
+                            cell_chunk_index,
+                            num_cell_chunks,
+                            len(neuron_chunk_idx),
+                            num_time_chunks,
+                            len(models),
+                        )
+                    )
+
+                for center_start in range(valid_start, valid_stop, time_chunk_frames):
+                    center_end = min(center_start + time_chunk_frames, valid_stop)
+                    valid_frames = center_end - center_start
+
+                    trace_start = max(0, center_start - halo)
+                    trace_end = min(traces.shape[1], center_end + halo)
+                    window_start_offset = center_start - left_context - trace_start
+
+                    windows_chunk = utils.build_streaming_window_tensor(
+                        traces_chunk=traces[neuron_chunk_idx, trace_start:trace_end],
+                        window_size=window_size,
+                        window_start_offset=window_start_offset,
+                        valid_frames=valid_frames,
+                        device=device,
+                    )
+
+                    prediction_sum = torch.zeros(
+                        windows_chunk.shape[0], dtype=torch.float32, device=device
+                    )
+
+                    with torch.inference_mode():
+                        for j, model in enumerate(models):
+                            offset = 0
+                            for batch_X in torch.split(windows_chunk, batch_size, dim=0):
+                                outputs = model(batch_X).reshape(-1)
+                                prediction_sum[offset : offset + outputs.shape[0]] += outputs
+                                offset += outputs.shape[0]
+
+                    prediction_chunk = (
+                        prediction_sum / len(models)
+                    ).view(len(neuron_chunk_idx), valid_frames)
+                    Y_predict[neuron_chunk_idx, center_start:center_end] = (
+                        prediction_chunk.detach().cpu().numpy()
+                    )
+
+                    del prediction_chunk
+                    del prediction_sum
+                    del windows_chunk
+    finally:
+        for models in loaded_models.values():
+            for model in models:
+                del model
+        if device.type == "cuda" and torch.cuda.is_available():
             torch.cuda.empty_cache()
 
     if threshold is False:  # only if 'False' is passed as argument
